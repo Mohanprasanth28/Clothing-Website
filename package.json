@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "cloud": "^2.0.2"
+  }
+}
