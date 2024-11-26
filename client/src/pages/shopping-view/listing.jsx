@@ -20,6 +20,7 @@ import { ArrowUpDownIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
+import Footer from "./footer";
 
 function createSearchParamsHelper(filterParams) {
   const queryParams = [];
@@ -27,9 +28,12 @@ function createSearchParamsHelper(filterParams) {
   for (const [key, value] of Object.entries(filterParams)) {
     if (Array.isArray(value) && value.length > 0) {
       const paramValue = value.join(",");
+
       queryParams.push(`${key}=${encodeURIComponent(paramValue)}`);
     }
   }
+
+  console.log(queryParams, "queryParams");
 
   return queryParams.join("&");
 }
@@ -42,12 +46,49 @@ function ShoppingListing() {
   const { cartItems } = useSelector((state) => state.shopCart);
   const { user } = useSelector((state) => state.auth);
   const [filters, setFilters] = useState({});
-  const [sort, setSort] = useState(null);
+  const [sort, setSort] = useState("price-lowtohigh");
   const [searchParams, setSearchParams] = useSearchParams();
   const [openDetailsDialog, setOpenDetailsDialog] = useState(false);
   const { toast } = useToast();
 
   const categorySearchParam = searchParams.get("category");
+
+  // Load initial products
+  useEffect(() => {
+    dispatch(fetchAllFilteredProducts({ filterParams: {}, sortParams: "price-lowtohigh" }));
+  }, [dispatch]);
+
+  // Handle category changes
+  useEffect(() => {
+    if (categorySearchParam) {
+      setFilters({ category: [categorySearchParam] });
+    } else {
+      setFilters({});
+    }
+  }, [categorySearchParam]);
+
+  // Update URL when filters change
+  useEffect(() => {
+    if (filters && Object.keys(filters).length > 0) {
+      const createQueryString = createSearchParamsHelper(filters);
+      setSearchParams(new URLSearchParams(createQueryString));
+    } else {
+      setSearchParams({});
+    }
+  }, [filters]);
+
+  // Handle filter and sort changes
+  useEffect(() => {
+    if (sort) {
+      const filterParams = Object.keys(filters).length > 0 ? filters : {};
+      dispatch(
+        fetchAllFilteredProducts({
+          filterParams,
+          sortParams: sort
+        })
+      );
+    }
+  }, [dispatch, sort, filters]);
 
   function handleSort(value) {
     setSort(value);
@@ -66,9 +107,14 @@ function ShoppingListing() {
       const indexOfCurrentOption =
         cpyFilters[getSectionId].indexOf(getCurrentOption);
 
-      if (indexOfCurrentOption === -1)
+      if (indexOfCurrentOption === -1) {
         cpyFilters[getSectionId].push(getCurrentOption);
-      else cpyFilters[getSectionId].splice(indexOfCurrentOption, 1);
+      } else {
+        cpyFilters[getSectionId].splice(indexOfCurrentOption, 1);
+        if (cpyFilters[getSectionId].length === 0) {
+          delete cpyFilters[getSectionId];
+        }
+      }
     }
 
     setFilters(cpyFilters);
@@ -76,18 +122,12 @@ function ShoppingListing() {
   }
 
   function handleGetProductDetails(getCurrentProductId) {
+    console.log(getCurrentProductId);
     dispatch(fetchProductDetails(getCurrentProductId));
   }
 
   function handleAddtoCart(getCurrentProductId, getTotalStock) {
-    if (!user) {
-      toast({
-        title: "You need to log in to add products to the cart",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    console.log(cartItems);
     let getCartItems = cartItems.items || [];
 
     if (getCartItems.length) {
@@ -98,7 +138,7 @@ function ShoppingListing() {
         const getQuantity = getCartItems[indexOfCurrentItem].quantity;
         if (getQuantity + 1 > getTotalStock) {
           toast({
-            title: `Only ${getTotalStock} quantity can be added for this item`,
+            title: `Only ${getQuantity} quantity can be added for this item`,
             variant: "destructive",
           });
 
@@ -124,27 +164,10 @@ function ShoppingListing() {
   }
 
   useEffect(() => {
-    setSort("price-lowtohigh");
-    setFilters(JSON.parse(sessionStorage.getItem("filters")) || {});
-  }, [categorySearchParam]);
-
-  useEffect(() => {
-    if (filters && Object.keys(filters).length > 0) {
-      const createQueryString = createSearchParamsHelper(filters);
-      setSearchParams(new URLSearchParams(createQueryString));
-    }
-  }, [filters]);
-
-  useEffect(() => {
-    if (filters !== null && sort !== null)
-      dispatch(
-        fetchAllFilteredProducts({ filterParams: filters, sortParams: sort })
-      );
-  }, [dispatch, sort, filters]);
-
-  useEffect(() => {
     if (productDetails !== null) setOpenDetailsDialog(true);
   }, [productDetails]);
+
+  console.log(productList, "productListproductListproductList");
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-6 p-4 md:p-6">
@@ -186,7 +209,6 @@ function ShoppingListing() {
           {productList && productList.length > 0
             ? productList.map((productItem) => (
                 <ShoppingProductTile
-                  key={productItem.id}
                   handleGetProductDetails={handleGetProductDetails}
                   product={productItem}
                   handleAddtoCart={handleAddtoCart}
@@ -201,6 +223,7 @@ function ShoppingListing() {
         productDetails={productDetails}
       />
     </div>
+    
   );
 }
 

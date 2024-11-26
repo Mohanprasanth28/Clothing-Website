@@ -2,12 +2,22 @@ import { Card, CardContent, CardFooter } from "../ui/card";
 import { Button } from "../ui/button";
 import { brandOptionsMap, categoryOptionsMap } from "@/config";
 import { Badge } from "../ui/badge";
+import StarRatingComponent from "../../components/common/star-rating"; 
 
 function ShoppingProductTile({
   product,
   handleGetProductDetails,
-  handleAddtoCart,
+  reviews,
 }) {
+  // Calculate available sizes
+  const sizes = product?.sizes || [];
+  const availableSizes = sizes.filter(size => size.stock > 0);
+  const sizeCount = availableSizes.length;
+  const averageReview =
+    reviews && reviews.length > 0
+      ? reviews.reduce((sum, reviewItem) => sum + reviewItem.reviewValue, 0) / reviews.length
+    : 0;
+
   return (
     <Card className="w-full max-w-sm mx-auto">
       <div onClick={() => handleGetProductDetails(product?._id)}>
@@ -55,6 +65,31 @@ function ShoppingProductTile({
               </span>
             ) : null}
           </div>
+
+          {/* Add the average review rating display here */}
+          <div className="flex items-center gap-2 mt-2">
+            <StarRatingComponent rating={averageReview} />
+            <span className="text-muted-foreground">
+              ({averageReview.toFixed(2)})
+            </span>
+          </div>
+          {sizeCount > 0 && (
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-sm text-gray-500">Available in:</span>
+              <div className="flex gap-1">
+                {availableSizes.slice(0, 3).map((size) => (
+                  <Badge key={size.name} variant="outline" className="text-xs">
+                    {size.name}
+                  </Badge>
+                ))}
+                {sizeCount > 3 && (
+                  <Badge variant="outline" className="text-xs">
+                    +{sizeCount - 3}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
         </CardContent>
       </div>
       <CardFooter>
@@ -62,14 +97,7 @@ function ShoppingProductTile({
           <Button className="w-full opacity-60 cursor-not-allowed">
             Out Of Stock
           </Button>
-        ) : (
-          <Button
-            onClick={() => handleAddtoCart(product?._id, product?.totalStock)}
-            className="w-full"
-          >
-            Add to cart
-          </Button>
-        )}
+        ) : null}
       </CardFooter>
     </Card>
   );

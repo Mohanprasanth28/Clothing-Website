@@ -36,7 +36,7 @@ function SearchProducts() {
     }
   }, [keyword]);
 
-  function handleAddtoCart(getCurrentProductId, getTotalStock) {
+  function handleAddtoCart(getCurrentProductId, getTotalStock, selectedSize) {
     console.log(cartItems);
     let getCartItems = cartItems.items || [];
 
@@ -61,6 +61,7 @@ function SearchProducts() {
       addToCart({
         userId: user?.id,
         productId: getCurrentProductId,
+        sizes: selectedSize,
         quantity: 1,
       })
     ).then((data) => {

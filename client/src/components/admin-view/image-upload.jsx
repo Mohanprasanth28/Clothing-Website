@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { Button } from "../ui/button";
 import axios from "axios";
 import { Skeleton } from "../ui/skeleton";
+import { useToast } from "../ui/use-toast";
 
 function ProductImageUpload({
   imageFile,
@@ -17,15 +18,21 @@ function ProductImageUpload({
   isCustomStyling = false,
 }) {
   const inputRef = useRef(null);
-
-  console.log(isEditMode, "isEditMode");
+  const { toast } = useToast();
 
   function handleImageFileChange(event) {
-    console.log(event.target.files, "event.target.files");
     const selectedFile = event.target.files?.[0];
-    console.log(selectedFile);
-
-    if (selectedFile) setImageFile(selectedFile);
+    if (selectedFile) {
+      if (selectedFile.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          title: "Error",
+          description: "Image size should be less than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      setImageFile(selectedFile);
+    }
   }
 
   function handleDragOver(event) {
@@ -35,11 +42,22 @@ function ProductImageUpload({
   function handleDrop(event) {
     event.preventDefault();
     const droppedFile = event.dataTransfer.files?.[0];
-    if (droppedFile) setImageFile(droppedFile);
+    if (droppedFile) {
+      if (droppedFile.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          title: "Error",
+          description: "Image size should be less than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      setImageFile(droppedFile);
+    }
   }
 
   function handleRemoveImage() {
     setImageFile(null);
+    setUploadedImageUrl("");
     if (inputRef.current) {
       inputRef.current.value = "";
     }
@@ -48,26 +66,47 @@ function ProductImageUpload({
   async function uploadImageToCloudinary() {
     setImageLoadingState(true);
     const data = new FormData();
-    data.append("my_file", imageFile);
-    const response = await axios.post(
-      "http://localhost:5000/api/admin/products/upload-image",
-      data
-    );
-    console.log(response, "response");
+    data.append("productImage", imageFile);
+    
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/api/admin/products/upload-image",
+        data,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
 
-    if (response?.data?.success) {
-      setUploadedImageUrl(response.data.result.url);
+      if (response?.data?.success) {
+        setUploadedImageUrl(response.data.imageUrl);
+        toast({
+          title: "Success",
+          description: "Image uploaded successfully",
+        });
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to upload image",
+        variant: "destructive",
+      });
+    } finally {
       setImageLoadingState(false);
     }
   }
 
   useEffect(() => {
-    if (imageFile !== null) uploadImageToCloudinary();
+    if (imageFile !== null) {
+      uploadImageToCloudinary();
+    }
   }, [imageFile]);
 
   return (
     <div
-      className={`w-full  mt-4 ${isCustomStyling ? "" : "max-w-md mx-auto"}`}
+      className={`w-full mt-4 ${isCustomStyling ? "" : "max-w-md mx-auto"}`}
     >
       <Label className="text-lg font-semibold mb-2 block">Upload Image</Label>
       <div
@@ -84,8 +123,9 @@ function ProductImageUpload({
           ref={inputRef}
           onChange={handleImageFileChange}
           disabled={isEditMode}
+          accept="image/*"
         />
-        {!imageFile ? (
+        {!imageFile && !uploadedImageUrl ? (
           <Label
             htmlFor="image-upload"
             className={`${
@@ -94,27 +134,43 @@ function ProductImageUpload({
           >
             <UploadCloudIcon className="w-10 h-10 text-muted-foreground mb-2" />
             <span>Drag & drop or click to upload image</span>
+            <span className="text-sm text-muted-foreground">Max size: 5MB</span>
           </Label>
         ) : imageLoadingState ? (
-          <Skeleton className="h-10 bg-gray-100" />
+          <div className="flex flex-col items-center justify-center h-32">
+            <Skeleton className="h-10 w-full bg-gray-100" />
+            <span className="mt-2">Uploading image...</span>
+          </div>
         ) : (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <FileIcon className="w-8 text-primary mr-2 h-8" />
+          <div className="flex items-center justify-between p-2 bg-muted rounded">
+            <div className="flex items-center space-x-2">
+              <FileIcon className="w-4 h-4" />
+              <span className="text-sm truncate max-w-[200px]">
+                {imageFile?.name || "Uploaded Image"}
+              </span>
             </div>
-            <p className="text-sm font-medium">{imageFile.name}</p>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-muted-foreground hover:text-foreground"
-              onClick={handleRemoveImage}
-            >
-              <XIcon className="w-4 h-4" />
-              <span className="sr-only">Remove File</span>
-            </Button>
+            {!isEditMode && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRemoveImage}
+                className="h-8 w-8 p-0"
+              >
+                <XIcon className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         )}
       </div>
+      {uploadedImageUrl && (
+        <div className="mt-4">
+          <img
+            src={uploadedImageUrl}
+            alt="Product"
+            className="max-h-48 rounded-lg mx-auto"
+          />
+        </div>
+      )}
     </div>
   );
 }

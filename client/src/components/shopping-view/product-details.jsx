@@ -13,10 +13,13 @@ import StarRatingComponent from "../common/star-rating";
 import { useEffect, useState } from "react";
 import { addReview, getReviews } from "@/store/shop/review-slice";
 import { useNavigate } from "react-router-dom";
+import "./style.css"
 
 function ProductDetailsDialog({ open, setOpen, productDetails }) {
   const [reviewMsg, setReviewMsg] = useState("");
   const [rating, setRating] = useState(0);
+  const [selectedSize, setSelectedSize] = useState(null);
+  const [sizeError, setSizeError] = useState(null);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user, isAuthenticated } = useSelector((state) => state.auth);
@@ -27,10 +30,19 @@ function ProductDetailsDialog({ open, setOpen, productDetails }) {
   function handleRatingChange(getRating) {
     setRating(getRating);
   }
+  function handleSizeChange(size) {
+    setSelectedSize(size);
+    setSizeError("");
+  }
 
   function handleAddToCart(getCurrentProductId, getTotalStock) {
     if (!isAuthenticated) {
       navigate("/auth/login");
+      return;
+    }
+
+    if (!selectedSize) {
+      setSizeError("Please select a size before adding to cart.");
       return;
     }
 
@@ -43,7 +55,8 @@ function ProductDetailsDialog({ open, setOpen, productDetails }) {
         const getQuantity = getCartItems[indexOfCurrentItem].quantity;
         if (getQuantity + 1 > getTotalStock) {
           toast({
-            title: `Only ${getQuantity} quantity can be added for this item`,
+            title: "Stock Limit",
+            description: `Only ${getQuantity} quantity can be added for this item`,
             variant: "destructive",
           });
           return;
@@ -51,17 +64,31 @@ function ProductDetailsDialog({ open, setOpen, productDetails }) {
       }
     }
 
+    console.log({
+      productId: getCurrentProductId,
+      sizes: selectedSize,
+      quantity: 1,
+    });
+
+    console.log("Dispatching addToCart with:", {
+      productId: getCurrentProductId,
+      sizes: selectedSize,
+      quantity: 1,
+    });
+
     dispatch(
       addToCart({
-        userId: user?.id,
         productId: getCurrentProductId,
+        sizes: selectedSize,
         quantity: 1,
       })
     ).then((data) => {
       if (data?.payload?.success) {
         dispatch(fetchCartItems(user?.id));
         toast({
-          title: "Product is added to cart",
+          title: "Success",
+          description: "Product added to cart successfully",
+          variant: "success",
         });
       }
     });
@@ -82,13 +109,14 @@ function ProductDetailsDialog({ open, setOpen, productDetails }) {
         reviewValue: rating,
       })
     ).then((data) => {
+      if(data.payload.success){
         setRating(0);
         setReviewMsg("");
         dispatch(getReviews(productDetails?._id));
         toast({
           title: "Review added successfully!",
         });
-      
+      }
     });
   }
 
@@ -97,6 +125,7 @@ function ProductDetailsDialog({ open, setOpen, productDetails }) {
     dispatch(setProductDetails());
     setRating(0);
     setReviewMsg("");
+    setSelectedSize("");
   }
 
   useEffect(() => {
@@ -150,6 +179,43 @@ function ProductDetailsDialog({ open, setOpen, productDetails }) {
               ({averageReview.toFixed(2)})
             </span>
           </div>
+
+          <div className="mt-5">
+            <Label className="text-lg font-semibold mb-3">Select Size</Label>
+            <div className="size-container">
+              <div className="size-grid">
+                {['S', 'M', 'L', 'XL', 'XXL'].map((sizeOption) => {
+                  const sizeData = productDetails?.sizes?.find(s => s.name === sizeOption);
+                  const isOutOfStock = !sizeData || sizeData.stock === 0;
+                  
+                  return (
+                    <div
+                      key={sizeOption}
+                      className={`size-square ${
+                        selectedSize === sizeOption ? 'selected' : ''
+                      } ${isOutOfStock ? 'out-of-stock' : ''}`}
+                      onClick={() => !isOutOfStock && handleSizeChange(sizeOption)}
+                    >
+                      <div className="size-content">
+                        <span className="size-label">{sizeOption}</span>
+                        {isOutOfStock ? (
+                          <span className="stock-status">Out of Stock</span>
+                        ) : (
+                          <span className="stock-status">In Stock: {sizeData.stock}</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {sizeError && (
+                <div className="size-error mt-2 text-red-500 text-sm">
+                  {sizeError}
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="mt-5 mb-5">
             {productDetails?.totalStock === 0 ? (
               <Button className="w-full opacity-60 cursor-not-allowed">
