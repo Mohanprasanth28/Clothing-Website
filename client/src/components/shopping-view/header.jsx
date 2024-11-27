@@ -24,10 +24,34 @@ import { useEffect, useState } from "react";
 import { fetchCartItems } from "@/store/shop/cart-slice";
 import { Label } from "../ui/label";
 
+const categorySuggestions = {
+  Products: {
+    brands: ["Puma", "Reebok", "Under Armour", "Uniqlo"],
+    products: ["T-Shirts", "Jeans", "Formal Wear", "Outerwear"],
+  },
+  Men: {
+    brands: ["Nike", "Adidas", "Levi's", "Tommy Hilfiger"],
+    products: ["Jackets", "Sneakers", "Jeans", "Watches"],
+  },
+  Women: {
+    brands: ["Zara", "H&M", "Forever 21", "Mango"],
+    products: ["Dresses", "Handbags", "Heels", "Jewelry"],
+  },
+  Kids: {
+    brands: ["GAP Kids", "Carter's", "Mothercare", "Uniqlo Kids"],
+    products: ["Toys", "Shoes", "T-shirts", "School Bags"],
+  },
+  Accessories: {
+    brands: ["Ray-Ban", "Michael Kors", "Fossil", "Coach"],
+    products: ["Sunglasses", "Wallets", "Belts", "Hats"],
+  },
+};
+
 function MenuItems() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [hoveredItem, setHoveredItem] = useState(null);
 
   function handleNavigate(getCurrentMenuItem) {
     sessionStorage.removeItem("filters");
@@ -52,13 +76,55 @@ function MenuItems() {
   return (
     <nav className="flex flex-col mb-3 lg:mb-0 lg:items-center gap-6 lg:flex-row">
       {shoppingViewHeaderMenuItems.map((menuItem) => (
-        <Label
-          onClick={() => handleNavigate(menuItem)}
-          className="text-sm font-medium cursor-pointer"
+        <div
           key={menuItem.id}
+          className="relative group"
+          onMouseEnter={() => setHoveredItem(menuItem.label)}
+          onMouseLeave={() => setHoveredItem(null)}
         >
-          {menuItem.label}
-        </Label>
+          <Label
+            onClick={() => handleNavigate(menuItem)}
+            className="text-sm font-medium cursor-pointer hover:text-blue-500 hover:bg-gray-200 px-3 py-2 rounded transition"
+          >
+            {menuItem.label}
+          </Label>
+
+          {/* Show suggestion only when hovered */}
+          {categorySuggestions[menuItem.label] && hoveredItem === menuItem.label && (
+            <div className="absolute left-0 top-full w-80 bg-white border border-gray-300 shadow-lg opacity-100 scale-100 transition-all duration-300 z-20 rounded-lg p-5">
+              <div className="animate-fadeInUp">
+                <h3 className="font-semibold text-gray-800 mb-3 text-lg border-b pb-2">
+                  Popular Brands
+                </h3>
+                <ul className="text-sm space-y-2 mb-4">
+                  {categorySuggestions[menuItem.label].brands.map((brand) => (
+                    <li
+                      key={brand}
+                      className="hover:text-blue-500 transition cursor-pointer"
+                    >
+                      {brand}
+                    </li>
+                  ))}
+                </ul>
+                <h3 className="font-semibold text-gray-800 mb-3 text-lg border-b pb-2">
+                  Popular Products
+                </h3>
+                <ul className="text-sm space-y-2">
+                  {categorySuggestions[menuItem.label].products.map(
+                    (product) => (
+                      <li
+                        key={product}
+                        className="hover:text-blue-500 transition cursor-pointer"
+                      >
+                        {product}
+                      </li>
+                    )
+                  )}
+                </ul>
+              </div>
+            </div>
+          )}
+        </div>
       ))}
     </nav>
   );

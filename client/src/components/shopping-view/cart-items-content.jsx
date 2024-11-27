@@ -49,6 +49,7 @@ function UserCartItemsContent({ cartItem }) {
           typeOfAction === "plus"
             ? getCartItem?.quantity + 1
             : getCartItem?.quantity - 1,
+        sizes: getCartItem?.sizes,
       })
     ).then((data) => {
       if (data?.payload?.success) {
@@ -61,7 +62,11 @@ function UserCartItemsContent({ cartItem }) {
 
   function handleCartItemDelete(getCartItem) {
     dispatch(
-      deleteCartItem({ userId: user?.id, productId: getCartItem?.productId })
+      deleteCartItem({
+        userId: user?.id,
+        productId: getCartItem?.productId,
+        sizes: getCartItem?.sizes,
+      })
     ).then((data) => {
       if (data?.payload?.success) {
         toast({
@@ -80,6 +85,7 @@ function UserCartItemsContent({ cartItem }) {
       />
       <div className="flex-1">
         <h3 className="font-extrabold">{cartItem?.title}</h3>
+        <p className="text-sm text-gray-500">Size: {cartItem?.sizes}</p>
         <div className="flex items-center gap-2 mt-1">
           <Button
             variant="outline"
@@ -99,13 +105,13 @@ function UserCartItemsContent({ cartItem }) {
             onClick={() => handleUpdateQuantity(cartItem, "plus")}
           >
             <Plus className="w-4 h-4" />
-            <span className="sr-only">Decrease</span>
+            <span className="sr-only">Increase</span>
           </Button>
         </div>
       </div>
       <div className="flex flex-col items-end">
         <p className="font-semibold">
-          $
+        ₹
           {(
             (cartItem?.salePrice > 0 ? cartItem?.salePrice : cartItem?.price) *
             cartItem?.quantity

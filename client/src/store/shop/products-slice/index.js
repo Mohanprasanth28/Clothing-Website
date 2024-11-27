@@ -12,16 +12,28 @@ export const fetchAllFilteredProducts = createAsyncThunk(
   async ({ filterParams, sortParams }) => {
     console.log(fetchAllFilteredProducts, "fetchAllFilteredProducts");
 
-    const query = new URLSearchParams({
-      ...filterParams,
-      sortBy: sortParams,
-    });
+    // Only add non-empty filter parameters to the query
+    const queryParams = {};
+    
+    // Add filter params only if they exist and have values
+    if (filterParams) {
+      Object.entries(filterParams).forEach(([key, value]) => {
+        if (Array.isArray(value) && value.length > 0) {
+          queryParams[key] = value.join(',');
+        }
+      });
+    }
+    
+    // Always add sort parameter
+    if (sortParams) {
+      queryParams.sortBy = sortParams;
+    }
 
+    const query = new URLSearchParams(queryParams);
+    
     const result = await axios.get(
-      `http://localhost:5000/api/shop/products/get?${query}`
+      `http://localhost:5000/api/shop/products/get${query.toString() ? `?${query}` : ''}`
     );
-
-    console.log(result);
 
     return result?.data;
   }
