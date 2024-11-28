@@ -25,14 +25,18 @@ function SearchProducts() {
   const { cartItems } = useSelector((state) => state.shopCart);
   const { toast } = useToast();
   useEffect(() => {
-    if (keyword && keyword.trim() !== "") {
-      dispatch(getSearchResults(keyword));
+    if (keyword && keyword.trim() !== "" && keyword.trim().length > 3) {
+      setTimeout(() => {
+        setSearchParams(new URLSearchParams(`?keyword=${keyword}`));
+        dispatch(getSearchResults(keyword));
+      }, 1000);
     } else {
+      setSearchParams(new URLSearchParams(`?keyword=${keyword}`));
       dispatch(resetSearchResults());
     }
   }, [keyword]);
 
-  function handleAddtoCart(getCurrentProductId, getTotalStock) {
+  function handleAddtoCart(getCurrentProductId, getTotalStock, selectedSize) {
     console.log(cartItems);
     let getCartItems = cartItems.items || [];
 
@@ -57,6 +61,7 @@ function SearchProducts() {
       addToCart({
         userId: user?.id,
         productId: getCurrentProductId,
+        sizes: selectedSize,
         quantity: 1,
       })
     ).then((data) => {
