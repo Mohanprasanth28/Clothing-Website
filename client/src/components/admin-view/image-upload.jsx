@@ -66,11 +66,11 @@ function ProductImageUpload({
   async function uploadImageToCloudinary() {
     setImageLoadingState(true);
     const data = new FormData();
-    data.append("productImage", imageFile);
+    data.append("file", imageFile);
     
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/admin/products/upload-image",
+        "http://localhost:5000/api/common/feature/upload",
         data,
         {
           headers: {
@@ -85,14 +85,20 @@ function ProductImageUpload({
           title: "Success",
           description: "Image uploaded successfully",
         });
+      } else {
+        throw new Error(response.data?.message || "Failed to upload image");
       }
     } catch (error) {
       console.error("Error uploading image:", error);
       toast({
         title: "Error",
-        description: error.response?.data?.message || "Failed to upload image",
+        description: error.response?.data?.message || error.message || "Failed to upload image",
         variant: "destructive",
       });
+      setImageFile(null);
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
     } finally {
       setImageLoadingState(false);
     }

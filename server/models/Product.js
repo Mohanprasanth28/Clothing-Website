@@ -32,22 +32,10 @@ const ProductSchema = new mongoose.Schema(
       enum: ["nike", "adidas", "puma", "levi", "zara", "h&m"],
       required: true
     },
-    totalStock: {
+    stock: {
       type: Number,
       default: 0,
     },
-    sizes: [{
-      name: {
-        type: String,
-        enum: ['S', 'M', 'L', 'XL', 'XXL'],
-        required: true
-      },
-      stock: {
-        type: Number,
-        default: 0,
-        min: 0
-      }
-    }],
     averageReview: {
       type: Number,
       default: 0,
@@ -55,24 +43,5 @@ const ProductSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
-// Pre-save middleware to update totalStock based on sizes
-ProductSchema.pre('save', function(next) {
-  if (this.sizes && this.sizes.length > 0) {
-    this.totalStock = this.sizes.reduce((sum, size) => sum + size.stock, 0);
-  }
-  next();
-});
-
-// Initialize sizes if not provided
-ProductSchema.pre('save', function(next) {
-  if (!this.sizes || this.sizes.length === 0) {
-    this.sizes = ['S', 'M', 'L', 'XL', 'XXL'].map(name => ({
-      name,
-      stock: 0
-    }));
-  }
-  next();
-});
 
 module.exports = mongoose.model("Product", ProductSchema);
