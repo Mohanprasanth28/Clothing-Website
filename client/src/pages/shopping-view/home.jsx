@@ -1,5 +1,9 @@
 import { Button } from "@/components/ui/button";
+<<<<<<< HEAD
 
+=======
+import Footer from "./footer";
+>>>>>>> 62f2dbb935ae610dba9b8214a236b5ab264b4df2
 import {
   Airplay,
   BabyIcon,
