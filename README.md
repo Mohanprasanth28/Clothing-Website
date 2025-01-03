@@ -9,6 +9,7 @@ A full-stack e-commerce website for clothing retail built with modern web techno
 - Shopping cart functionality
 - Order management
 - Admin dashboard
+- image adding
 - Responsive design for all devices
 
 ## Tech Stack
